@@ -1,22 +1,33 @@
 pipeline {
-    agent any
-    stages {
-     stage('clone'){
+   agent any
+   stages{
+    stage('CodeScan'){
         steps{
-            sh  'echo "clone"'
-            sh  'uname-r' 
+            sh 'trivy fs .  -o result.html'
+            sh 'cat result.html'
+           
         }
-     }
-stage('test'){
-    steps{
-        sh  'echo "test"'
     }
+    stage('dockerLogin'){
+        steps{
+            sh 'aws ecr get-login-password --region us-east-1 | docker login \
+            --username AWS --password-stdin 390403896277.dkr.ecr.us-east-1.amazonaws.com'
+        }
+    }
+    stage('dockerImageBuild'){
+        steps{
+            sh 'docker build -t jenkins-ci .'
+        }
 }
-stage('createfile'){
-    steps{
-        sh  'touch text-$BUILD_ID'
+    stage('dockerImageTag'){
+        steps{
+            sh 'docker tag jenkins-ci:latest 390403896277.dkr.ecr.us-east-1.amazonaws.com/jenkins-ci:latest'
+        }
     }
-}
+    stage('pushImage'){
+        steps{
+            sh 'docker push 390403896277.dkr.ecr.us-east-1.amazonaws.com/jenkins-ci:latest'
+        }
     }
-
+   } 
 }
